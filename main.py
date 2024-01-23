@@ -1,6 +1,11 @@
 # Import a library
 import tkinter as tk
-
+#creating a window
 root = tk.Tk()
 
-root.mainloop()
+#creaing a window
+root.geometry("1900x1000")
+
+#Adding a title
+root.title("My First GUI")
+root.mainloop() 
