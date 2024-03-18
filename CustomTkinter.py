@@ -1,43 +1,55 @@
 import tkinter as tk
-from tkinter import PhotoImage, messagebox
+from tkinter import PhotoImage
+from tkinter import messagebox
 from PIL import Image, ImageTk
 import sqlite3
 
-# Establish connection to SQLite database
 conn = sqlite3.connect('user_database.db')
 cursor = conn.cursor()
-
-# Create users table if it doesn't exist
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
         password TEXT NOT NULL,
-        role TEXT NOT NULL,
-        confirmed INTEGER DEFAULT 0
+        role TEXT NOT NULL
     )
 ''')
 conn.commit()
 
+class UserWindow:
+    def __init__(self, root, username):
+        self.root = root
+        self.root.title(f"Car Rental System - User: {username}")
+        self.root.geometry("400x300")
 
-class UserPage(tk.Frame):
-    def __init__(self, parent, controller, username):
-        tk.Frame.__init__(self, parent)
-        self.controller = controller
-        self.username = username
+        # User details label
+        user_details_label = tk.Label(
+            self.root, text=f"Welcome, {username}!", font=("Arial", 16)
+        )
+        user_details_label.pack(pady=20)
 
-        label = tk.Label(self, text=f"Welcome, {self.username}!")
-        label.pack(padx=10, pady=10)
+        # Logout button
+        logout_button = tk.Button(self.root, text="Logout", command=self.logout)
+        logout_button.pack(pady=20)
+
+    def logout(self):
+        self.root.destroy()  # Close user window
+        app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
 
 
-class AdminPage(tk.Frame):
-    def __init__(self, parent, controller, username):
-        tk.Frame.__init__(self, parent)
-        self.controller = controller
-        self.username = username
+class AdminWindow:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Car Rental System - Admin")
+        self.root.geometry("600x400")
 
-        label = tk.Label(self, text=f"Admin Dashboard\nLogged in as: {self.username}")
-        label.pack(padx=10, pady=10)
+        # Logout button
+        logout_button = tk.Button(self.root, text="Logout", command=self.logout)
+        logout_button.pack(pady=20)
+
+    def logout(self):
+        self.root.destroy()  # Close admin window
+        app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
 
 
 class AuthenticationApp:
@@ -46,13 +58,13 @@ class AuthenticationApp:
         self.root.title("Car Rental Solution - Sign-In / Sign Up screen")
         self.root.geometry("600x400")
 
-        # Load background image
+        # Load the image using Pillow
         background_image = Image.open("C:/Users/sudhi/OneDrive/Desktop/PythonCustomTkinter/7197355.jpg")
         self.background_image = ImageTk.PhotoImage(background_image)
         background_label = tk.Label(root, image=self.background_image)
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-        # Center window
+        # Calculate the center of the screen
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
         x_center = (screen_width - 600) / 2
@@ -100,51 +112,36 @@ class AuthenticationApp:
         user = cursor.fetchone()
 
         if user:
-            if user[4] == 1:  # Check if account is confirmed
-                role = user[3]
-                messagebox.showinfo("Success", f"Welcome, {username}! Role: {role}")
-                # Redirect to user or admin screen based on role
-                if role == "User":
-                    self.root.destroy()
-                    user_screen = tk.Tk()
-                    user_page = UserPage(user_screen, self, username)
-                    user_page.pack()
-                    user_screen.mainloop()
-                elif role == "Admin":
-                    self.root.destroy()
-                    admin_screen = tk.Tk()
-                    admin_page = AdminPage(admin_screen, self, username)
-                    admin_page.pack()
-                    admin_screen.mainloop()
+            role = user[3]
+            if role == 'admin':
+                self.root.withdraw()  # Hide the authentication window
+                admin_window = tk.Toplevel()  # Create a new window for admin
+                admin_app = AdminWindow(admin_window)
             else:
-                messagebox.showerror("Error", "Account not confirmed. Please check your email.")
+                self.root.withdraw()  # Hide the authentication window
+                user_window = tk.Toplevel()  # Create a new window for user
+                user_app = UserWindow(user_window, username)
         else:
-            messagebox.showerror("Error", "Invalid credentials")
+            messagebox.showerror("Error", "Invalid username, password, or role")
 
     def signup(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
+        role = self.role_var.get()
 
-        # Validate input
-        if not username or not password:
-            messagebox.showerror("Error", "Please enter both username and password")
-            return
-
-        # Check if the username is already taken
+        # Check if username already exists
         cursor.execute('SELECT * FROM users WHERE username=?', (username,))
         existing_user = cursor.fetchone()
 
         if existing_user:
-            messagebox.showerror("Error", "Username already taken. Please choose another.")
+            messagebox.showerror("Error", "Username already exists. Please choose a different username.")
         else:
-            # Insert the new user into the database
-            cursor.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', (username, password, self.role_var.get()))
+            # Insert new user into the database
+            cursor.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', (username, password, role))
             conn.commit()
-            messagebox.showinfo("Success", "Sign up successful!")
+            messagebox.showinfo("Success", "User created successfully. You can now sign in.")
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = AuthenticationApp(root)
-    root.mainloop()
-
-conn.close()
+# Create the main application window
+root = tk.Tk()
+app = AuthenticationApp(root)
+root.mainloop()
