@@ -1,20 +1,44 @@
 import tkinter as tk
-from tkinter import PhotoImage
-from tkinter import messagebox
+from tkinter import PhotoImage, messagebox
 from PIL import Image, ImageTk
 import sqlite3
 
+# Establish connection to SQLite database
 conn = sqlite3.connect('user_database.db')
 cursor = conn.cursor()
+
+# Create users table if it doesn't exist
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
         password TEXT NOT NULL,
-        role TEXT NOT NULL
+        role TEXT NOT NULL,
+        confirmed INTEGER DEFAULT 0
     )
 ''')
 conn.commit()
+
+
+class UserPage(tk.Frame):
+    def __init__(self, parent, controller, username):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.username = username
+
+        label = tk.Label(self, text=f"Welcome, {self.username}!")
+        label.pack(padx=10, pady=10)
+
+
+class AdminPage(tk.Frame):
+    def __init__(self, parent, controller, username):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.username = username
+
+        label = tk.Label(self, text=f"Admin Dashboard\nLogged in as: {self.username}")
+        label.pack(padx=10, pady=10)
+
 
 class AuthenticationApp:
     def __init__(self, root):
@@ -22,13 +46,13 @@ class AuthenticationApp:
         self.root.title("Car Rental Solution - Sign-In / Sign Up screen")
         self.root.geometry("600x400")
 
-        # Load the image using Pillow
+        # Load background image
         background_image = Image.open("C:/Users/sudhi/OneDrive/Desktop/PythonCustomTkinter/7197355.jpg")
         self.background_image = ImageTk.PhotoImage(background_image)
         background_label = tk.Label(root, image=self.background_image)
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-        # Calculate the center of the screen
+        # Center window
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
         x_center = (screen_width - 600) / 2
@@ -76,8 +100,24 @@ class AuthenticationApp:
         user = cursor.fetchone()
 
         if user:
-            role = user[3]
-            messagebox.showinfo("Success", f"Welcome, {username}! Role: {role}")
+            if user[4] == 1:  # Check if account is confirmed
+                role = user[3]
+                messagebox.showinfo("Success", f"Welcome, {username}! Role: {role}")
+                # Redirect to user or admin screen based on role
+                if role == "User":
+                    self.root.destroy()
+                    user_screen = tk.Tk()
+                    user_page = UserPage(user_screen, self, username)
+                    user_page.pack()
+                    user_screen.mainloop()
+                elif role == "Admin":
+                    self.root.destroy()
+                    admin_screen = tk.Tk()
+                    admin_page = AdminPage(admin_screen, self, username)
+                    admin_page.pack()
+                    admin_screen.mainloop()
+            else:
+                messagebox.showerror("Error", "Account not confirmed. Please check your email.")
         else:
             messagebox.showerror("Error", "Invalid credentials")
 
