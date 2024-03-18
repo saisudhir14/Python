@@ -36,20 +36,106 @@ class UserWindow:
         self.root.destroy()  # Close user window
         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
 
-
 class AdminWindow:
-    def __init__(self, root):
+    def __init__(self, root, admin_username):
         self.root = root
-        self.root.title("Car Rental System - Admin")
+        self.root.title(f"Car Rental System - Admin: {admin_username}")
         self.root.geometry("600x400")
+
+        # Admin functionalities (e.g., manage cars, view rentals)
+        self.manage_cars_button = tk.Button(self.root, text="Manage Cars", command=self.manage_cars)
+        self.manage_cars_button.pack(pady=20)
+
+        self.view_rentals_button = tk.Button(self.root, text="View Rentals", command=self.view_rentals)
+        self.view_rentals_button.pack(pady=20)
 
         # Logout button
         logout_button = tk.Button(self.root, text="Logout", command=self.logout)
         logout_button.pack(pady=20)
 
+    def manage_cars(self):
+        # Open a new window for managing cars
+        manage_cars_window = tk.Toplevel(self.root)
+        manage_cars_window.title("Manage Cars")
+        manage_cars_window.geometry("400x300")
+
+        # Adding widgets for managing cars (e.g., add, edit, delete buttons)
+        add_car_button = tk.Button(manage_cars_window, text="Add Car", command=self.add_car)
+        add_car_button.pack(pady=10)
+
+        edit_car_button = tk.Button(manage_cars_window, text="Edit Car", command=self.edit_car)
+        edit_car_button.pack(pady=10)
+
+        delete_car_button = tk.Button(manage_cars_window, text="Delete Car", command=self.delete_car)
+        delete_car_button.pack(pady=10)
+
+    def add_car(self):
+        # Implement functionality to add a new car
+        pass
+
+    def edit_car(self):
+        # Implement functionality to edit an existing car
+        pass
+
+    def delete_car(self):
+        # Implement functionality to delete a car
+        pass
+
+    def view_rentals(self):
+        # Open a new window to view rentals
+        view_rentals_window = tk.Toplevel(self.root)
+        view_rentals_window.title("View Rentals")
+        view_rentals_window.geometry("600x400")
+
+        # Add widgets to display rental information (e.g., table or listbox)
+        rentals_label = tk.Label(view_rentals_window, text="List of Rentals", font=("Arial", 14))
+        rentals_label.pack(pady=10)
+
+        # Retrieve rental information from the database and display it
+        # Example: You can fetch rental data from the database and display it in a table or listbox
+        # Example:
+        # rentals_listbox = tk.Listbox(view_rentals_window)
+        # rentals_listbox.pack(fill=tk.BOTH, expand=True)
+        # for rental in rental_data:
+        #     rentals_listbox.insert(tk.END, rental)
+
     def logout(self):
         self.root.destroy()  # Close admin window
         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
+
+
+# class AdminWindow:
+#     def __init__(self, root, admin_username):
+#         self.root = root
+#         self.root.title(f"Car Rental System - Admin: {admin_username}")
+#         self.root.geometry("600x400")
+
+#         # Admin functionalities (e.g., manage cars, view rentals)
+#         self.manage_cars_button = tk.Button(self.root, text="Manage Cars", command=self.manage_cars)
+#         self.manage_cars_button.pack(pady=20)
+
+#         self.view_rentals_button = tk.Button(self.root, text="View Rentals", command=self.view_rentals)
+#         self.view_rentals_button.pack(pady=20)
+
+#         # Logout button
+#         logout_button = tk.Button(self.root, text="Logout", command=self.logout)
+#         logout_button.pack(pady=20)
+
+#     def manage_cars(self):
+#         # I need to Implement manage cars functionality
+#         pass
+
+#     def view_rentals(self):
+#         # I need to implement view rentals functionality
+#         pass
+
+#     def logout(self):
+#         self.root.destroy()  # Close admin window
+#         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
+
+#     def logout(self):
+#         self.root.destroy()  # Close admin window
+#         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
 
 
 class AuthenticationApp:
@@ -116,7 +202,7 @@ class AuthenticationApp:
             if role == 'admin':
                 self.root.withdraw()  # Hide the authentication window
                 admin_window = tk.Toplevel()  # Create a new window for admin
-                admin_app = AdminWindow(admin_window)
+                admin_app = AdminWindow(admin_window, username)
             else:
                 self.root.withdraw()  # Hide the authentication window
                 user_window = tk.Toplevel()  # Create a new window for user
