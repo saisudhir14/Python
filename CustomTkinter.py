@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import PhotoImage
 from tkinter import messagebox
+from tkinter import ttk
 from PIL import Image, ImageTk
 import sqlite3
 
@@ -14,6 +15,24 @@ cursor.execute('''
         role TEXT NOT NULL
     )
 ''')
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS cars (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        make TEXT NOT NULL,
+        model TEXT NOT NULL,
+        year INTEGER NOT NULL
+    )
+''')
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS rentals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        car_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        rental_date TEXT NOT NULL,
+        return_date TEXT
+    )
+''')
+
 conn.commit()
 
 class UserWindow:
@@ -59,7 +78,7 @@ class AdminWindow:
         manage_cars_window.title("Manage Cars")
         manage_cars_window.geometry("400x300")
 
-        # Adding widgets for managing cars (e.g., add, edit, delete buttons)
+        # Add widgets for managing cars (e.g., add, edit, delete buttons)
         add_car_button = tk.Button(manage_cars_window, text="Add Car", command=self.add_car)
         add_car_button.pack(pady=10)
 
@@ -70,16 +89,105 @@ class AdminWindow:
         delete_car_button.pack(pady=10)
 
     def add_car(self):
-        # Implement functionality to add a new car
-        pass
+        # Open a new window to add a car
+        add_car_window = tk.Toplevel(self.root)
+        add_car_window.title("Add Car")
+        add_car_window.geometry("300x200")
+
+        # Add labels and entry fields for car details
+        make_label = tk.Label(add_car_window, text="Make:")
+        make_label.pack(pady=5)
+        make_entry = tk.Entry(add_car_window)
+        make_entry.pack(pady=5)
+
+        model_label = tk.Label(add_car_window, text="Model:")
+        model_label.pack(pady=5)
+        model_entry = tk.Entry(add_car_window)
+        model_entry.pack(pady=5)
+
+        year_label = tk.Label(add_car_window, text="Year:")
+        year_label.pack(pady=5)
+        year_entry = tk.Entry(add_car_window)
+        year_entry.pack(pady=5)
+
+        # Button to add the car to the database
+        add_button = tk.Button(add_car_window, text="Add", command=lambda: self.add_car_to_database(make_entry.get(), model_entry.get(), year_entry.get()))
+        add_button.pack(pady=10)
+
+
+    def add_car_to_database(self, make, model, year):
+        # Implement functionality to add a car to the database
+        if make and model and year:
+            cursor.execute("INSERT INTO cars (make, model, year) VALUES (?, ?, ?)", (make, model, year))
+            conn.commit()
+            messagebox.showinfo("Success", "Car added successfully")
+        else:
+            messagebox.showerror("Error", "Please fill in all the fields")
 
     def edit_car(self):
-        # Implement functionality to edit an existing car
-        pass
+        # Open a new window to edit a car
+        edit_car_window = tk.Toplevel(self.root)
+        edit_car_window.title("Edit Car")
+        edit_car_window.geometry("300x200")
+
+        # Add labels and entry fields for car details
+        car_id_label = tk.Label(edit_car_window, text="Car ID:")
+        car_id_label.pack(pady=5)
+        car_id_entry = tk.Entry(edit_car_window)
+        car_id_entry.pack(pady=5)
+
+        make_label = tk.Label(edit_car_window, text="Make:")
+        make_label.pack(pady=5)
+        make_entry = tk.Entry(edit_car_window)
+        make_entry.pack(pady=5)
+
+        model_label = tk.Label(edit_car_window, text="Model:")
+        model_label.pack(pady=5)
+        model_entry = tk.Entry(edit_car_window)
+        model_entry.pack(pady=5)
+
+        year_label = tk.Label(edit_car_window, text="Year:")
+        year_label.pack(pady=5)
+        year_entry = tk.Entry(edit_car_window)
+        year_entry.pack(pady=5)
+
+        # Button to save the changes to the database
+        save_button = tk.Button(edit_car_window, text="Save Changes", command=lambda: self.save_car_changes(car_id_entry.get(), make_entry.get(), model_entry.get(), year_entry.get()))
+        save_button.pack(pady=10)
+
+    def save_car_changes(self, car_id, make, model, year):
+        # Implement functionality to save the edited car details to the database
+        if car_id and make and model and year:
+            cursor.execute("UPDATE cars SET make=?, model=?, year=? WHERE id=?", (make, model, year, car_id))
+            conn.commit()
+            messagebox.showinfo("Success", "Car details updated successfully")
+        else:
+            messagebox.showerror("Error", "Please fill in all the fields")
 
     def delete_car(self):
-        # Implement functionality to delete a car
-        pass
+        # Open a new window to delete a car
+        delete_car_window = tk.Toplevel(self.root)
+        delete_car_window.title("Delete Car")
+        delete_car_window.geometry("300x150")
+
+        # Add label and entry field for car ID
+        id_label = tk.Label(delete_car_window, text="Car ID:")
+        id_label.pack(pady=5)
+        id_entry = tk.Entry(delete_car_window)
+        id_entry.pack(pady=5)
+
+        # Button to delete the car from the database
+        delete_button = tk.Button(delete_car_window, text="Delete", command=lambda: self.delete_car_from_database(id_entry.get()))
+        delete_button.pack(pady=10)
+
+    def delete_car_from_database(self, car_id):
+        # Implement functionality to delete a car from the database
+        if car_id:
+            cursor.execute("DELETE FROM cars WHERE id=?", (car_id,))
+            conn.commit()
+            messagebox.showinfo("Success", "Car deleted successfully")
+        else:
+            messagebox.showerror("Error", "Please enter a car ID")
 
     def view_rentals(self):
         # Open a new window to view rentals
@@ -87,56 +195,28 @@ class AdminWindow:
         view_rentals_window.title("View Rentals")
         view_rentals_window.geometry("600x400")
 
-        # Add widgets to display rental information (e.g., table or listbox)
-        rentals_label = tk.Label(view_rentals_window, text="List of Rentals", font=("Arial", 14))
-        rentals_label.pack(pady=10)
+        # Add a Treeview widget to display rental information
+        tree = ttk.Treeview(view_rentals_window)
+        tree["columns"] = ("car_id", "user_id", "rental_date", "return_date")
+        tree.heading("#0", text="ID")
+        tree.heading("car_id", text="Car ID")
+        tree.heading("user_id", text="User ID")
+        tree.heading("rental_date", text="Rental Date")
+        tree.heading("return_date", text="Return Date")
 
-        # Retrieve rental information from the database and display it
-        # Example: You can fetch rental data from the database and display it in a table or listbox
-        # Example:
-        # rentals_listbox = tk.Listbox(view_rentals_window)
-        # rentals_listbox.pack(fill=tk.BOTH, expand=True)
-        # for rental in rental_data:
-        #     rentals_listbox.insert(tk.END, rental)
+        # Fetch rental data from the database
+        cursor.execute("SELECT * FROM rentals")
+        rentals = cursor.fetchall()
+
+        # Insert rental data into the Treeview
+        for rental in rentals:
+            tree.insert("", tk.END, text=rental[0], values=(rental[1], rental[2], rental[3], rental[4]))
+
+        tree.pack(expand=True, fill=tk.BOTH)
 
     def logout(self):
         self.root.destroy()  # Close admin window
         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
-
-
-# class AdminWindow:
-#     def __init__(self, root, admin_username):
-#         self.root = root
-#         self.root.title(f"Car Rental System - Admin: {admin_username}")
-#         self.root.geometry("600x400")
-
-#         # Admin functionalities (e.g., manage cars, view rentals)
-#         self.manage_cars_button = tk.Button(self.root, text="Manage Cars", command=self.manage_cars)
-#         self.manage_cars_button.pack(pady=20)
-
-#         self.view_rentals_button = tk.Button(self.root, text="View Rentals", command=self.view_rentals)
-#         self.view_rentals_button.pack(pady=20)
-
-#         # Logout button
-#         logout_button = tk.Button(self.root, text="Logout", command=self.logout)
-#         logout_button.pack(pady=20)
-
-#     def manage_cars(self):
-#         # I need to Implement manage cars functionality
-#         pass
-
-#     def view_rentals(self):
-#         # I need to implement view rentals functionality
-#         pass
-
-#     def logout(self):
-#         self.root.destroy()  # Close admin window
-#         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
-
-#     def logout(self):
-#         self.root.destroy()  # Close admin window
-#         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
-
 
 class AuthenticationApp:
     def __init__(self, root):
@@ -167,7 +247,7 @@ class AuthenticationApp:
         self.password_label.place(x=x_center - 100, y=y_center)
 
         self.password_entry = tk.Entry(root, show="*")
-        self.password_entry.place(x=x_center + 50, y=y_center)
+        self.password_entry.place(x=x_center  + 50, y=y_center)
 
         self.role_label = tk.Label(root, text="Role:")
         self.role_label.place(x=x_center - 100, y=y_center + 50)
@@ -199,7 +279,7 @@ class AuthenticationApp:
 
         if user:
             role = user[3]
-            if role == 'admin':
+            if role == 'Admin':
                 self.root.withdraw()  # Hide the authentication window
                 admin_window = tk.Toplevel()  # Create a new window for admin
                 admin_app = AdminWindow(admin_window, username)
@@ -231,3 +311,4 @@ class AuthenticationApp:
 root = tk.Tk()
 app = AuthenticationApp(root)
 root.mainloop()
+
