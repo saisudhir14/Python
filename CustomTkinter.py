@@ -88,11 +88,14 @@ class AdminWindow:
         delete_car_button = tk.Button(manage_cars_window, text="Delete Car", command=self.delete_car)
         delete_car_button.pack(pady=10)
 
+        display_car_button = tk.Button(manage_cars_window, text="Display Cars", command=self.display_cars)
+        display_car_button.pack(pady=10)
+
     def add_car(self):
         # Open a new window to add a car
         add_car_window = tk.Toplevel(self.root)
         add_car_window.title("Add Car")
-        add_car_window.geometry("300x200")
+        add_car_window.geometry("400x300")
 
         # Add labels and entry fields for car details
         make_label = tk.Label(add_car_window, text="Make:")
@@ -128,7 +131,7 @@ class AdminWindow:
         # Open a new window to edit a car
         edit_car_window = tk.Toplevel(self.root)
         edit_car_window.title("Edit Car")
-        edit_car_window.geometry("300x200")
+        edit_car_window.geometry("400x300")
 
         # Add labels and entry fields for car details
         car_id_label = tk.Label(edit_car_window, text="Car ID:")
@@ -188,6 +191,30 @@ class AdminWindow:
             messagebox.showinfo("Success", "Car deleted successfully")
         else:
             messagebox.showerror("Error", "Please enter a car ID")
+
+    def display_cars(self):
+        # Open a new window to display cars
+        display_cars_window = tk.Toplevel(self.root)
+        display_cars_window.title("Display Cars")
+        display_cars_window.geometry("600x600")
+
+        # Add a Treeview widget to display car information
+        tree = ttk.Treeview(display_cars_window)
+        tree["columns"] = ("make", "model", "year")
+        tree.heading("#0", text="ID")
+        tree.heading("make", text="Make")
+        tree.heading("model", text="Model")
+        tree.heading("year", text="Year")
+
+        # Fetch car data from the database
+        cursor.execute("SELECT * FROM cars")
+        cars = cursor.fetchall()
+
+        # Insert car data into the Treeview
+        for car in cars:
+            tree.insert("", tk.END, text=car[0], values=(car[1], car[2], car[3]))
+
+        tree.pack(expand=True, fill=tk.BOTH)
 
     def view_rentals(self):
         # Open a new window to view rentals
@@ -311,4 +338,3 @@ class AuthenticationApp:
 root = tk.Tk()
 app = AuthenticationApp(root)
 root.mainloop()
-
