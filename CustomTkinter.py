@@ -1,9 +1,11 @@
 import tkinter as tk
-from tkinter import PhotoImage
 from tkinter import messagebox
 from tkinter import ttk
 from PIL import Image, ImageTk
 import sqlite3
+
+conn = sqlite3.connect('user_database.db')
+cursor = conn.cursor()
 
 conn = sqlite3.connect('user_database.db')
 cursor = conn.cursor()
@@ -14,15 +16,18 @@ cursor.execute('''
         password TEXT NOT NULL,
         role TEXT NOT NULL
     )
-''')
+''') 
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS cars (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         make TEXT NOT NULL,
         model TEXT NOT NULL,
-        year INTEGER NOT NULL
+        year INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'available'  -- Add the status column with a default value
     )
 ''')
+
+
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS rentals (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,14 +41,15 @@ cursor.execute('''
 conn.commit()
 
 class UserWindow:
-    def __init__(self, root, username):
+    def __init__(self, root, username, user_id):
         self.root = root
-        self.root.title(f"Car Rental System - User: {username}")
+        self.username = username
+        self.user_id = user_id  
         self.root.geometry("400x300")
-
+        
         # User details label
         user_details_label = tk.Label(
-            self.root, text=f"Welcome, {username}!", font=("Arial", 16)
+            self.root, text=f"Welcome, {self.username}!", font=("Arial", 16)
         )
         user_details_label.pack(pady=20)
 
@@ -51,6 +57,216 @@ class UserWindow:
         logout_button = tk.Button(self.root, text="Logout", command=self.logout)
         logout_button.pack(pady=20)
 
+        # Buttons for user functionalities
+        view_available_cars_button = tk.Button(self.root, text="View Available Cars", command=self.view_available_cars)
+        view_available_cars_button.pack(pady=10)
+
+        make_reservation_button = tk.Button(self.root, text="Make Reservation", command=self.make_reservation)
+        make_reservation_button.pack(pady=10)
+
+        view_my_rentals_button = tk.Button(self.root, text="View My Rentals", command=self.view_my_rentals)
+        view_my_rentals_button.pack(pady=10)
+
+        cancel_reservation_button = tk.Button(self.root, text="Cancel Reservation", command=self.cancel_reservation)
+        cancel_reservation_button.pack(pady=10)
+
+        update_profile_button = tk.Button(self.root, text="Update Profile", command=self.update_profile)
+        update_profile_button.pack(pady=10)
+
+        view_rental_history_button = tk.Button(self.root, text="View Rental History", command=self.view_rental_history)
+        view_rental_history_button.pack(pady=10)
+
+        search_cars_button = tk.Button(self.root, text="Search Cars", command=self.search_cars)
+        search_cars_button.pack(pady=10)
+
+        filter_cars_button = tk.Button(self.root, text="Filter Cars", command=self.filter_cars)
+        filter_cars_button.pack(pady=10)
+
+
+
+    def view_available_cars(self):
+        # Open a new window to display available cars
+        available_cars_window = tk.Toplevel(self.root)
+        available_cars_window.title("Available Cars")
+        available_cars_window.geometry("600x400")
+
+        # Add a Treeview widget to display available car information
+        tree = ttk.Treeview(available_cars_window)
+        tree["columns"] = ("make", "model", "year")
+        tree.heading("#0", text="ID")
+        tree.heading("make", text="Make")
+        tree.heading("model", text="Model")
+        tree.heading("year", text="Year")
+
+        # Fetch available car data from the database (assuming there's a status field indicating availability)
+        cursor.execute("SELECT * FROM cars WHERE status='available'")
+        available_cars = cursor.fetchall()
+
+        # Insert available car data into the Treeview
+        for car in available_cars:
+            tree.insert("", tk.END, text=car[0], values=(car[1], car[2], car[3]))
+
+        tree.pack(expand=True, fill=tk.BOTH)
+
+
+    def make_reservation(self):
+        # Open a new window to make a reservation
+        make_reservation_window = tk.Toplevel(self.root)
+        make_reservation_window.title("Make Reservation")
+        make_reservation_window.geometry("400x300")
+
+        # Add labels and entry fields for reservation details
+        car_id_label = tk.Label(make_reservation_window, text="Car ID:")
+        car_id_label.pack(pady=5)
+        car_id_entry = tk.Entry(make_reservation_window)
+        car_id_entry.pack(pady=5)
+
+        # Button to confirm reservation
+        confirm_button = tk.Button(make_reservation_window, text="Confirm Reservation", command=lambda: self.confirm_reservation(car_id_entry.get()))
+        confirm_button.pack(pady=10)
+        
+        
+
+    def confirm_reservation(self, car_id):
+        # Validate input
+        if not car_id:
+            messagebox.showerror("Error", "Please enter a car ID")
+            return
+
+        # Check if the car ID is valid
+        cursor.execute("SELECT * FROM cars WHERE id=?", (car_id,))
+        car = cursor.fetchone()
+        if not car:
+            messagebox.showerror("Error", "Invalid car ID")
+            return
+
+        # Check if the car is available for reservation
+        if car[5] != 'available':
+            messagebox.showerror("Error", "The selected car is not available for reservation")
+            return
+
+        # Confirm the reservation
+        user_id = self.user_id  # Assuming self.user_id is the ID of the current user
+        rental_date = "CURRENT_TIMESTAMP"  # Assuming the rental date should be the current timestamp
+        cursor.execute("INSERT INTO rentals (car_id, user_id, rental_date) VALUES (?, ?, ?)", (car_id, user_id, rental_date))
+        cursor.execute("UPDATE cars SET status='reserved' WHERE id=?", (car_id,))
+        conn.commit()
+        messagebox.showinfo("Success", "Reservation confirmed successfully")
+
+    def view_my_rentals(self):
+        # Open a new window to display user's rentals
+        my_rentals_window = tk.Toplevel(self.root)
+        my_rentals_window.title("My Rentals")
+        my_rentals_window.geometry("600x400")
+
+        # Add a Treeview widget to display rental information
+        tree = ttk.Treeview(my_rentals_window)
+        tree["columns"] = ("car_id", "rental_date", "return_date")
+        tree.heading("#0", text="ID")
+        tree.heading("car_id", text="Car ID")
+        tree.heading("rental_date", text="Rental Date")
+        tree.heading("return_date", text="Return Date")
+
+        # Fetch user's rental data from the database (assuming the user's ID is known)
+        cursor.execute("SELECT * FROM rentals WHERE user_id=?", (self.user_id,))
+        rentals = cursor.fetchall()
+
+        # Insert rental data into the Treeview
+        for rental in rentals:
+            tree.insert("", tk.END, text=rental[0], values=(rental[1], rental[2], rental[3]))
+        tree.pack(expand=True, fill=tk.BOTH)
+
+    def cancel_reservation(self):
+        # Implement functionality to cancel a reservation
+        pass  # Placeholder for now
+
+    def update_profile(self):
+        # Implement functionality to update user's profile
+        pass  # Placeholder for now
+
+    def view_rental_history(self):
+        # Implement functionality to view user's rental history
+        pass  # Placeholder for now
+
+    def search_cars(self):
+        # Implement functionality to search for cars
+        pass  # Placeholder for now
+
+    def filter_cars(self):
+    # Open a new window to filter cars
+        filter_cars_window = tk.Toplevel(self.root)
+        filter_cars_window.title("Filter Cars")
+        filter_cars_window.geometry("400x300")
+
+    # Add labels and entry fields for filter criteria
+        make_label = tk.Label(filter_cars_window, text="Make:")
+        make_label.pack(pady=5)
+        make_entry = tk.Entry(filter_cars_window)
+        make_entry.pack(pady=5)
+
+        model_label = tk.Label(filter_cars_window, text="Model:")
+        model_label.pack(pady=5)
+        model_entry = tk.Entry(filter_cars_window)
+        model_entry.pack(pady=5)
+
+        year_label = tk.Label(filter_cars_window, text="Year:")
+        year_label.pack(pady=5)
+        year_entry = tk.Entry(filter_cars_window)
+        year_entry.pack(pady=5)
+
+        # Button to apply the filter
+        apply_filter_button = tk.Button(filter_cars_window, text="Apply Filter", command=lambda: self.apply_filter(make_entry.get(), model_entry.get(), year_entry.get()))
+        apply_filter_button.pack(pady=10)
+
+
+        # Button to apply the filter
+        apply_filter_button = tk.Button(filter_cars_window, text="Apply Filter", command=lambda: self.apply_filter(make_entry.get(), model_entry.get(), year_entry.get()))
+        apply_filter_button.pack(pady=10)
+
+    def apply_filter(self, make, model, year):
+    # Fetch car data based on the filter criteria
+        if make and model and year:
+            cursor.execute("SELECT * FROM cars WHERE make=? AND model=? AND year=?", (make, model, year))
+        elif make and model:
+            cursor.execute("SELECT * FROM cars WHERE make=? AND model=?", (make, model))
+        elif make and year:
+            cursor.execute("SELECT * FROM cars WHERE make=? AND year=?", (make, year))
+        elif model and year:
+            cursor.execute("SELECT * FROM cars WHERE model=? AND year=?", (model, year))
+        elif make:
+            cursor.execute("SELECT * FROM cars WHERE make=?", (make,))
+        elif model:
+            cursor.execute("SELECT * FROM cars WHERE model=?", (model,))
+        elif year:
+            cursor.execute("SELECT * FROM cars WHERE year=?", (year,))
+        else:
+            messagebox.showerror("Error", "Please enter at least one filter criteria")
+
+    # Fetch filtered cars and display them in a new window
+        filtered_cars = cursor.fetchall()
+        self.display_filtered_cars(filtered_cars)
+
+    
+    def display_filtered_cars(self, filtered_cars):
+    # Open a new window to display filtered cars
+        filtered_cars_window = tk.Toplevel(self.root)
+        filtered_cars_window.title("Filtered Cars")
+        filtered_cars_window.geometry("600x400")
+
+        # Add a Treeview widget to display filtered car information
+        tree = ttk.Treeview(filtered_cars_window)
+        tree["columns"] = ("make", "model", "year")
+        tree.heading("#0", text="ID")
+        tree.heading("make", text="Make")
+        tree.heading("model", text="Model")
+        tree.heading("year", text="Year")
+
+    # Insert filtered car data into the Treeview
+        for car in filtered_cars:
+            tree.insert("", tk.END, text=car[0], values=(car[1], car[2], car[3]))
+
+        tree.pack(expand=True, fill=tk.BOTH)
+    
     def logout(self):
         self.root.destroy()  # Close user window
         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
@@ -291,6 +507,7 @@ class AuthenticationApp:
         self.signup_button = tk.Button(root, text="Sign Up", command=self.signup)
         self.signup_button.place(x=x_center + 100, y=y_center + 100)
 
+
     def signin(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
@@ -300,6 +517,7 @@ class AuthenticationApp:
             messagebox.showerror("Error", "Please enter both username and password")
             return
 
+
         # Check if the user exists in the database
         cursor.execute('SELECT * FROM users WHERE username=? AND password=? AND role=?', (username, password, self.role_var.get()))
         user = cursor.fetchone()
@@ -307,16 +525,18 @@ class AuthenticationApp:
         if user:
             role = user[3]
             if role == 'Admin':
-                self.root.withdraw()  # Hide the authentication window
-                admin_window = tk.Toplevel()  # Create a new window for admin
+                self.root.withdraw()
+                admin_window = tk.Toplevel()
                 admin_app = AdminWindow(admin_window, username)
             else:
-                self.root.withdraw()  # Hide the authentication window
-                user_window = tk.Toplevel()  # Create a new window for user
-                user_app = UserWindow(user_window, username)
+                self.root.withdraw()
+                user_window = tk.Toplevel()
+                user_app = UserWindow(user_window, username, user[0])  # Pass user_id here
         else:
             messagebox.showerror("Error", "Invalid username, password, or role")
 
+            
+            
     def signup(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
@@ -333,6 +553,7 @@ class AuthenticationApp:
             cursor.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', (username, password, role))
             conn.commit()
             messagebox.showinfo("Success", "User created successfully. You can now sign in.")
+            
 
 # Create the main application window
 root = tk.Tk()
