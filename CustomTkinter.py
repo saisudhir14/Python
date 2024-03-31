@@ -1,9 +1,11 @@
 import tkinter as tk
-from tkinter import PhotoImage
 from tkinter import messagebox
 from tkinter import ttk
 from PIL import Image, ImageTk
 import sqlite3
+
+conn = sqlite3.connect('user_database.db')
+cursor = conn.cursor()
 
 conn = sqlite3.connect('user_database.db')
 cursor = conn.cursor()
@@ -14,15 +16,18 @@ cursor.execute('''
         password TEXT NOT NULL,
         role TEXT NOT NULL
     )
-''')
+''') 
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS cars (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         make TEXT NOT NULL,
         model TEXT NOT NULL,
-        year INTEGER NOT NULL
+        year INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'available'  -- Add the status column with a default value
     )
 ''')
+
+
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS rentals (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,14 +41,15 @@ cursor.execute('''
 conn.commit()
 
 class UserWindow:
-    def __init__(self, root, username):
+    def __init__(self, root, username, user_id):
         self.root = root
-        self.root.title(f"Car Rental System - User: {username}")
+        self.username = username
+        self.user_id = user_id  
         self.root.geometry("400x300")
-
+        
         # User details label
         user_details_label = tk.Label(
-            self.root, text=f"Welcome, {username}!", font=("Arial", 16)
+            self.root, text=f"Welcome, {self.username}!", font=("Arial", 16)
         )
         user_details_label.pack(pady=20)
 
@@ -51,9 +57,84 @@ class UserWindow:
         logout_button = tk.Button(self.root, text="Logout", command=self.logout)
         logout_button.pack(pady=20)
 
+        # Buttons for user functionalities
+        view_available_cars_button = tk.Button(self.root, text="View Available Cars", command=self.view_available_cars)
+        view_available_cars_button.pack(pady=10)
+
+        make_reservation_button = tk.Button(self.root, text="Make Reservation", command=self.make_reservation)
+        make_reservation_button.pack(pady=10)
+
+        view_my_rentals_button = tk.Button(self.root, text="View My Rentals", command=self.view_my_rentals)
+        view_my_rentals_button.pack(pady=10)
+
+        cancel_reservation_button = tk.Button(self.root, text="Cancel Reservation", command=self.cancel_reservation)
+        cancel_reservation_button.pack(pady=10)
+
+        update_profile_button = tk.Button(self.root, text="Update Profile", command=self.update_profile)
+        update_profile_button.pack(pady=10)
+
+        view_rental_history_button = tk.Button(self.root, text="View Rental History", command=self.view_rental_history)
+        view_rental_history_button.pack(pady=10)
+
+        search_cars_button = tk.Button(self.root, text="Search Cars", command=self.search_cars)
+        search_cars_button.pack(pady=10)
+
+        filter_cars_button = tk.Button(self.root, text="Filter Cars", command=self.filter_cars)
+        filter_cars_button.pack(pady=10)
+
     def logout(self):
         self.root.destroy()  # Close user window
         app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
+
+    def view_available_cars(self):
+        # Open a new window to display available cars
+        pass
+
+    def make_reservation(self):
+        # Open a new window to make a reservation
+        pass
+        
+    def confirm_reservation(self, car_id):
+        # Validate input
+        pass
+
+    def view_my_rentals(self):
+        # Open a new window to display user's rentals
+        pass
+
+    def cancel_reservation(self):
+        # Implement functionality to cancel a reservation
+        pass  # Placeholder for now
+
+    def update_profile(self):
+        # Implement functionality to update user's profile
+        pass  # Placeholder for now
+
+    def view_rental_history(self):
+        # Implement functionality to view user's rental history
+        pass  # Placeholder for now
+
+    def search_cars(self):
+        # Implement functionality to search for cars
+        pass  # Placeholder for now
+
+    def filter_cars(self):
+        # Open a new window to filter cars
+        pass
+
+    def apply_filter(self, make, model, year):
+        # Fetch car data based on the filter criteria
+        pass
+
+    def display_filtered_cars(self, filtered_cars):
+        # Open a new window to display filtered cars
+        pass
+
+    # Insert filtered car data into the Treeview
+    def logout(self):
+        self.root.destroy()  # Close user window
+        app.root.deiconify()  # Unhide main window (assuming 'app' is an instance)
+
 
 class AdminWindow:
     def __init__(self, root, admin_username):
@@ -291,6 +372,7 @@ class AuthenticationApp:
         self.signup_button = tk.Button(root, text="Sign Up", command=self.signup)
         self.signup_button.place(x=x_center + 100, y=y_center + 100)
 
+
     def signin(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
@@ -300,6 +382,7 @@ class AuthenticationApp:
             messagebox.showerror("Error", "Please enter both username and password")
             return
 
+
         # Check if the user exists in the database
         cursor.execute('SELECT * FROM users WHERE username=? AND password=? AND role=?', (username, password, self.role_var.get()))
         user = cursor.fetchone()
@@ -307,16 +390,18 @@ class AuthenticationApp:
         if user:
             role = user[3]
             if role == 'Admin':
-                self.root.withdraw()  # Hide the authentication window
-                admin_window = tk.Toplevel()  # Create a new window for admin
+                self.root.withdraw()
+                admin_window = tk.Toplevel()
                 admin_app = AdminWindow(admin_window, username)
             else:
-                self.root.withdraw()  # Hide the authentication window
-                user_window = tk.Toplevel()  # Create a new window for user
-                user_app = UserWindow(user_window, username)
+                self.root.withdraw()
+                user_window = tk.Toplevel()
+                user_app = UserWindow(user_window, username, user[0])  # Pass user_id here
         else:
             messagebox.showerror("Error", "Invalid username, password, or role")
 
+            
+            
     def signup(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
@@ -333,6 +418,7 @@ class AuthenticationApp:
             cursor.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', (username, password, role))
             conn.commit()
             messagebox.showinfo("Success", "User created successfully. You can now sign in.")
+            
 
 # Create the main application window
 root = tk.Tk()
